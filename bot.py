@@ -26,6 +26,8 @@ else:
     first_line_replacement = ""
 
 # ===== SAVE FUNCTION =====
+
+
 def save_data():
     with open(DATA_FILE, "w") as f:
         json.dump({
@@ -34,6 +36,7 @@ def save_data():
             "remove_first_line": remove_first_line,
             "first_line_replacement": first_line_replacement
         }, f)
+
 
 # ===== FOOTER CONTROLS =====
 footer_text = "\n\nOffered by Gold Hunter VIP"
@@ -49,13 +52,17 @@ LOCK_TIME = 15 * 60
 
 auth_data = {}
 
+
 def is_authenticated(user_id: int) -> bool:
     return auth_data.get(user_id, {}).get("authenticated", False)
+
 
 def check_lock(user_id: int) -> bool:
     return time.time() < auth_data.get(user_id, {}).get("locked_until", 0)
 
 # ===== CLEAN MESSAGE =====
+
+
 def clean_message(text: str) -> str:
     if not text:
         return ""
@@ -75,6 +82,7 @@ def clean_message(text: str) -> str:
 
     return "\n".join(new_lines).strip()
 
+
 # ===== TELETHON CLIENTS =====
 client = TelegramClient('user_session', api_id, api_hash)
 client.start()
@@ -83,6 +91,8 @@ bot = TelegramClient('bot_session', api_id, api_hash)
 bot.start(bot_token=bot_token)
 
 # =================== FORWARDING LOGIC ===================
+
+
 @client.on(events.NewMessage)
 async def handler(event):
     global destination_groups, source_groups, footer_text, footer_enabled, entity_cache
@@ -125,12 +135,16 @@ async def handler(event):
         except Exception as e:
             print(f"Error sending to {dest}: {e}")
 
-# =================== PASSWORD HANDLING ===================
+# =================== PASSWORD HANDLING ==============
+
+
 @bot.on(events.NewMessage(pattern='/start'))
 async def start_command(event):
     user_id = event.sender_id
-    auth_data[user_id] = {"authenticated": False, "attempts": 0, "locked_until": 0}
+    auth_data[user_id] = {"authenticated": False,
+                          "attempts": 0, "locked_until": 0}
     await event.reply("🔒 Welcome! Please enter the password to continue:")
+
 
 @bot.on(events.NewMessage)
 async def password_handler(event):
@@ -146,7 +160,7 @@ async def password_handler(event):
 
     if check_lock(user_id):
         wait_sec = int(auth_data[user_id]["locked_until"] - time.time())
-        await event.reply(f"⏳ Too many failed attempts. Try again in {wait_sec//60}m {wait_sec%60}s.")
+        await event.reply(f"⏳ Too many failed attempts. Try again in {wait_sec//60}m {wait_sec % 60}s.")
         return
 
     if msg == BOT_PASSWORD:
@@ -164,6 +178,8 @@ async def password_handler(event):
             await event.reply(f"❌ Wrong password. {attempts_left} attempts left.")
 
 # ===== COMMAND WRAPPER =====
+
+
 def auth_required(func):
     async def wrapper(event):
         if not is_authenticated(event.sender_id):
@@ -173,6 +189,8 @@ def auth_required(func):
     return wrapper
 
 # =================== BOT COMMANDS ===================
+
+
 @bot.on(events.NewMessage(pattern='/help'))
 @auth_required
 async def help_command(event):
@@ -196,12 +214,15 @@ async def help_command(event):
         "/togglefooter"
     )
 
+
 @bot.on(events.NewMessage(pattern='/about'))
 @auth_required
 async def about_command(event):
     await event.reply("LiqHunter v1.0\nDeveloped by Lahiru Mahakumburage")
 
 # ========== CLEANING SETTINGS ==========
+
+
 @bot.on(events.NewMessage(pattern='/togglefirstline'))
 @auth_required
 async def toggle_firstline(event):
@@ -209,6 +230,7 @@ async def toggle_firstline(event):
     remove_first_line = not remove_first_line
     save_data()
     await event.reply(f"First line removal is now {'enabled ✅' if remove_first_line else 'disabled ❌'}")
+
 
 @bot.on(events.NewMessage(pattern='/setfirstline'))
 @auth_required
@@ -224,6 +246,7 @@ async def set_firstline(event):
         save_data()
         await event.reply("✅ First line replacement cleared.")
 
+
 @bot.on(events.NewMessage(pattern='/showsettings'))
 @auth_required
 async def show_settings(event):
@@ -236,6 +259,8 @@ async def show_settings(event):
     )
 
 # ========== FOOTER SETTINGS ==========
+
+
 @bot.on(events.NewMessage(pattern='/setfooter'))
 @auth_required
 async def set_footer(event):
@@ -247,6 +272,7 @@ async def set_footer(event):
     else:
         await event.reply("⚠️ Usage: /setfooter Your footer text")
 
+
 @bot.on(events.NewMessage(pattern='/togglefooter'))
 @auth_required
 async def toggle_footer(event):
@@ -255,12 +281,15 @@ async def toggle_footer(event):
     await event.reply(f"Footer is now {'enabled ✅' if footer_enabled else 'disabled ❌'}")
 
 # ========== GROUP MANAGEMENT ==========
+
+
 @bot.on(events.NewMessage(pattern='/adddestination'))
 @auth_required
 async def add_destination(event):
     global destination_groups, entity_cache
     try:
-        new_dest = int(event.message.message.replace("/adddestination", "").strip())
+        new_dest = int(event.message.message.replace(
+            "/adddestination", "").strip())
         if new_dest not in destination_groups:
             destination_groups.append(new_dest)
             entity_cache.pop(new_dest, None)
@@ -271,12 +300,14 @@ async def add_destination(event):
     except:
         await event.reply("⚠️ Usage: /adddestination <chat_id>")
 
+
 @bot.on(events.NewMessage(pattern='/removedestination'))
 @auth_required
 async def remove_destination(event):
     global destination_groups, entity_cache
     try:
-        rem_dest = int(event.message.message.replace("/removedestination", "").strip())
+        rem_dest = int(event.message.message.replace(
+            "/removedestination", "").strip())
         if rem_dest in destination_groups:
             destination_groups.remove(rem_dest)
             entity_cache.pop(rem_dest, None)
@@ -287,12 +318,14 @@ async def remove_destination(event):
     except:
         await event.reply("⚠️ Usage: /removedestination <chat_id>")
 
+
 @bot.on(events.NewMessage(pattern='/addsource'))
 @auth_required
 async def add_source(event):
     global source_groups
     try:
-        new_source = int(event.message.message.replace("/addsource", "").strip())
+        new_source = int(event.message.message.replace(
+            "/addsource", "").strip())
         if new_source not in source_groups:
             source_groups.append(new_source)
             save_data()
@@ -302,12 +335,14 @@ async def add_source(event):
     except:
         await event.reply("⚠️ Usage: /addsource <chat_id>")
 
+
 @bot.on(events.NewMessage(pattern='/removesource'))
 @auth_required
 async def remove_source(event):
     global source_groups
     try:
-        rem_source = int(event.message.message.replace("/removesource", "").strip())
+        rem_source = int(event.message.message.replace(
+            "/removesource", "").strip())
         if rem_source in source_groups:
             source_groups.remove(rem_source)
             save_data()
@@ -316,6 +351,7 @@ async def remove_source(event):
             await event.reply("⚠️ Not in list.")
     except:
         await event.reply("⚠️ Usage: /removesource <chat_id>")
+
 
 @bot.on(events.NewMessage(pattern='/listsources'))
 @auth_required
